@@ -1,0 +1,23 @@
+<?php
+
+use App\Http\Controllers\Api\TeamController;
+use App\Http\Controllers\Api\PlayerController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
+
+// API v1
+Route::prefix('v1')->as('api.v1.')->group(function () {
+    // Health
+    Route::get('health', fn () => ['ok' => true, 'ts' => now()->toISOString()])->name('health');
+
+    // Teams
+    Route::apiResource('teams', TeamController::class)->only(['index', 'show']);
+
+    // Players
+    Route::get('players/search', [PlayerController::class, 'search'])->name('players.search');
+    Route::apiResource('players', PlayerController::class)->only(['index', 'show']);
+});
