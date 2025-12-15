@@ -45,21 +45,22 @@ const getSportIcon = (sport: Sport): string => {
 <template>
     <Head title="Select a Sport" />
     <div
-        class="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6 dark:from-slate-900 dark:to-slate-800"
+        class="flex h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 p-6 dark:from-slate-900 dark:to-slate-800"
     >
-        <div class="mb-12 text-center">
+        <div class="mb-8 text-center">
             <h1
-                class="mb-3 text-5xl font-bold tracking-tight text-slate-900 dark:text-slate-50"
+                class="mb-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50"
             >
                 PlayerPicker
             </h1>
-            <p class="text-lg text-slate-600 dark:text-slate-400">
+            <p class="text-base text-slate-600 dark:text-slate-400">
                 Choose your sport
             </p>
         </div>
 
         <div
-            class="grid w-full max-w-6xl grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+            class="grid grid-cols-2 justify-items-center gap-6 sm:grid-cols-3 md:grid-cols-4"
+            style="max-width: 800px"
         >
             <button
                 v-for="sport in sports"

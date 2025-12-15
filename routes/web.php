@@ -37,6 +37,20 @@ Route::get('/sports/{sport:slug}', function (\App\Models\Sport $sport) {
 
 Route::resource('sports', SportsController::class)->except(['show']);
 
+// League teams page
+Route::get('/leagues/{league:slug}/teams', function (\App\Models\League $league) {
+    $teams = $league->teams()
+        ->with('sport')
+        ->where('is_active', true)
+        ->orderBy('name')
+        ->get();
+    
+    return Inertia::render('teams/Index', [
+        'teams' => $teams,
+        'league' => $league,
+    ]);
+})->name('leagues.teams');
+
 // Web team pages (index + show)
 use App\Http\Controllers\TeamController as WebTeamController;
 Route::get('/teams', [WebTeamController::class, 'index'])->name('teams.index');
