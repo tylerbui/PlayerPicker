@@ -12,7 +12,7 @@
     body { 
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; 
       margin: 0; 
-      padding: 3rem 5vw; 
+      padding: 1rem 5vw 3rem; 
       font-size: 28px; 
       min-height: 100vh; 
       box-sizing: border-box;
@@ -76,7 +76,7 @@
     a{ 
       color: var(--team-primary); 
       text-decoration:none; 
-      font-size: 1.8rem;
+      font-size: 1rem;
       transition: opacity 0.2s;
     }
     a:hover { opacity: 0.8; }

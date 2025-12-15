@@ -21,9 +21,9 @@
     .back-link { 
       color: var(--team-primary); 
       text-decoration: none; 
-      font-size: 1.2rem;
+      font-size: 1rem;
       display: inline-block;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
       transition: opacity 0.2s;
     }
     .back-link:hover { opacity: 0.7; }
@@ -223,10 +223,19 @@
       font-size: 1rem;
       color: #92400e;
     }
-  </style>
+</style>
 </head>
 <body>
   <div class="container">
+    <div id="live-container" style="display:none; margin-bottom: 1rem;">
+      <div style="background:#ecfccb;border:1px solid #84cc16;padding:1rem 1.25rem;border-radius:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+          <strong id="live-state" style="color:#365314;">Live</strong>
+          <span id="live-clock" style="color:#3f6212;"></span>
+          <div id="live-line" style="margin-left:auto;color:#1a2e05;font-weight:600;"></div>
+        </div>
+      </div>
+    </div>
     <a class="back-link" href="{{ route('players.index') }}">← All players</a>
 
     @if($needsSync ?? false)
@@ -385,6 +394,58 @@
         </div>
       </div>
     @endif
+    </div>
+    <script>
+      (function(){
+        const container = document.getElementById('live-container');
+        const stateEl = document.getElementById('live-state');
+        const clockEl = document.getElementById('live-clock');
+        const lineEl = document.getElementById('live-line');
+        const slug = @json($player->slug);
+        const url = `/api/v1/players/${slug}/live`;
+
+        async function tick() {
+          try {
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) {
+              // Hide banner if no game
+              container.style.display = 'none';
+              return;
+            }
+            const data = await res.json();
+            const live = !!data.live;
+            const state = data.state || 'pre';
+            const clock = data.clock || '';
+            const L = data.line || null;
+
+            stateEl.textContent = live ? 'Live' : (state === 'pre' ? 'Pregame' : 'Final');
+            clockEl.textContent = clock;
+
+            if (L) {
+              const parts = [];
+              if (L.minutes) parts.push(`${L.minutes}m`);
+              if (L.pts != null) parts.push(`${L.pts} pts`);
+              if (L.reb != null) parts.push(`${L.reb} reb`);
+              if (L.ast != null) parts.push(`${L.ast} ast`);
+              if (L.stl != null) parts.push(`${L.stl} stl`);
+              if (L.blk != null) parts.push(`${L.blk} blk`);
+              if (L.tov != null) parts.push(`${L.tov} TO`);
+              lineEl.textContent = parts.join(' · ');
+            } else {
+              lineEl.textContent = 'Line not available yet';
+            }
+
+            container.style.display = 'block';
+          } catch (e) {
+            // network error: keep silent
+          }
+        }
+
+        // initial + poll
+        tick();
+        setInterval(tick, 15000);
+      })();
+    </script>
   </div>
 </body>
 </html>

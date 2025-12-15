@@ -19,5 +19,8 @@ Route::prefix('v1')->as('api.v1.')->group(function () {
 
     // Players
     Route::get('players/search', [PlayerController::class, 'search'])->name('players.search');
-    Route::apiResource('players', PlayerController::class)->only(['index', 'show']);
+Route::apiResource('players', PlayerController::class)->only(['index', 'show']);
+
+    // Live player line (near-live from ESPN)
+    Route::get('players/{player:slug}/live', [PlayerController::class, 'live'])->name('players.live');
 });

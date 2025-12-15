@@ -9,6 +9,49 @@ use Illuminate\Http\Request;
 
 class PlayerController extends Controller
 {
+    public function live(Player $player, \App\Services\EspnService $espn)
+    {
+        $player->load('team');
+        $teamAbbr = $player->team?->code;
+        if (!$teamAbbr) {
+            return response()->json(['ok' => false, 'message' => 'Team abbreviation missing for player team'], 422);
+        }
+
+        // Only look for live games first; if none, allow pregame for today so page can show upcoming
+        $eventId = $espn->findTodayEventForTeamAbbr($teamAbbr, true)
+            ?? $espn->findTodayEventForTeamAbbr($teamAbbr, false);
+
+        if (!$eventId) {
+            return response()->json(['ok' => false, 'live' => false, 'message' => 'No game found for team today'], 404);
+        }
+
+        $summary = $espn->getGameSummary($eventId);
+        if (!$summary) {
+            return response()->json(['ok' => false, 'message' => 'Failed to load ESPN game summary'], 502);
+        }
+
+        $fullName = trim($player->first_name . ' ' . $player->last_name);
+        $line = $espn->extractPlayerLiveLine($summary, $fullName, $teamAbbr);
+
+        $state = data_get($summary, 'header.competitions.0.status.type.state');
+        $clock = data_get($summary, 'header.competitions.0.status.type.detail');
+
+        return response()->json([
+            'ok' => true,
+            'live' => $state === 'in',
+            'state' => $state,
+            'clock' => $clock,
+            'eventId' => $eventId,
+            'player' => [
+                'id' => $player->id,
+                'name' => $fullName,
+                'teamAbbr' => $teamAbbr,
+            ],
+            'line' => $line,
+            'source' => 'espn',
+        ]);
+}
+
     // GET /api/v1/players
     public function index(Request $request)
     {
