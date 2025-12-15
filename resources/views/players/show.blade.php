@@ -35,20 +35,20 @@
       gap: 3rem;
       background: white;
       border-radius: 16px;
-      padding: 3rem;
+      padding: 3.5rem;
       margin-bottom: 2rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       border-left: 6px solid var(--team-primary);
     }
     .player-image {
-      width: 300px;
-      height: 300px;
+      width: 320px;
+      height: 320px;
       object-fit: cover;
       border-radius: 12px;
       background: color-mix(in srgb, var(--team-primary) 10%, white);
     }
     .player-info h1 {
-      font-size: 3.5rem;
+      font-size: 3.75rem;
       margin: 0 0 0.5rem 0;
       color: color-mix(in srgb, var(--team-primary) 90%, black);
     }
@@ -91,12 +91,12 @@
     .section {
       background: white;
       border-radius: 16px;
-      padding: 2.5rem;
+      padding: 3rem;
       margin-bottom: 2rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     .section h2 {
-      font-size: 2.5rem;
+      font-size: 2.75rem;
       margin: 0 0 1.5rem 0;
       color: color-mix(in srgb, var(--team-primary) 85%, black);
       border-bottom: 3px solid color-mix(in srgb, var(--team-primary) 20%, white);
@@ -121,7 +121,7 @@
       border: 1px solid color-mix(in srgb, var(--team-primary) 15%, white);
     }
     .stat-card h3 {
-      font-size: 1.5rem;
+      font-size: 1.7rem;
       margin: 0 0 1rem 0;
       color: var(--team-primary);
     }
@@ -149,21 +149,21 @@
     }
     .game-card {
       background: color-mix(in srgb, var(--team-secondary) 5%, white);
-      padding: 1.5rem;
+      padding: 1.75rem;
       border-radius: 12px;
       display: grid;
-      grid-template-columns: 120px 1fr auto;
+      grid-template-columns: 160px 1fr auto;
       gap: 1.5rem;
       align-items: center;
       border-left: 4px solid var(--team-secondary);
     }
     .game-date {
-      font-size: 0.9rem;
+      font-size: 1rem;
       color: #6b7280;
       font-weight: 500;
     }
     .game-teams {
-      font-size: 1.2rem;
+      font-size: 1.4rem; display:flex; align-items:center; gap:.5rem;
       font-weight: 500;
       color: #111827;
     }
@@ -171,7 +171,7 @@
       text-align: right;
       color: var(--team-primary);
       font-weight: 600;
-      font-size: 1.1rem;
+      font-size: 1.3rem;
     }
 
     /* News */
@@ -223,7 +223,11 @@
       font-size: 1rem;
       color: #92400e;
     }
-</style>
+    /* Recent section global size */
+    #recent-games-section { font-size: 1.1rem; }
+    #recent-games-section .game-card { font-size: 1.1em; }
+    #recent-games-section .game-teams img { width: 28px; height: 28px; object-fit: contain; }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -348,25 +352,13 @@
       </div>
     @endif
 
-    <!-- Recent Games -->
-    @if($player->recent_games_stats && count($player->recent_games_stats) > 0)
-      <div class="section">
-        <h2>Recent Games</h2>
-        <div class="games-list">
-          @foreach(array_slice($player->recent_games_stats, 0, 10) as $game)
-            <div class="game-card">
-              <div class="game-date">{{ $game['fixture']['date'] ?? 'N/A' }}</div>
-              <div class="game-teams">
-                {{ $game['teams']['home']['name'] ?? 'Home' }} vs {{ $game['teams']['away']['name'] ?? 'Away' }}
-              </div>
-              <div class="game-stats">
-                {{ $game['goals']['home'] ?? 0 }} - {{ $game['goals']['away'] ?? 0 }}
-              </div>
-            </div>
-          @endforeach
-        </div>
+    <!-- Recent Games (NBA, last 5) -->
+    <div class="section" id="recent-games-section">
+      <h2>Recent Games</h2>
+      <div id="recent-games" class="games-list">
+        <div class="empty-state">Loading recent games…</div>
       </div>
-    @endif
+    </div>
 
     <!-- News -->
     @if($player->news && count($player->news) > 0)
@@ -386,6 +378,15 @@
       </div>
     @endif
 
+    <!-- Averages (Last 2 Seasons) -->
+    <div class="section">
+      <h2>Averages (Last 2 Seasons)</h2>
+      <div id="avg-seasons" class="stats-grid">
+        <div class="stat-card"><h3>Current Season</h3><div id="avg-current"></div></div>
+        <div class="stat-card"><h3>Previous Season</h3><div id="avg-previous"></div></div>
+      </div>
+    </div>
+
     @if(!$player->biography && !$player->current_season_stats && !$player->recent_games_stats && !$player->news)
       <div class="section">
         <div class="empty-state">
@@ -394,9 +395,85 @@
         </div>
       </div>
     @endif
-    </div>
-    <script>
-      (function(){
+  </div>
+  <script>
+    (function(){
+      const slug = @json($player->slug);
+      const recentEl = document.getElementById('recent-games');
+      const avgCurEl = document.getElementById('avg-current');
+      const avgPrevEl = document.getElementById('avg-previous');
+
+      function fmtLine(L){
+        if (!L) return '—';
+        const parts = [];
+        if (L.minutes) parts.push(`${L.minutes}m`);
+        if (L.pts != null) parts.push(`${L.pts} pts`);
+        if (L.reb != null) parts.push(`${L.reb} reb`);
+        if (L.ast != null) parts.push(`${L.ast} ast`);
+        if (L.stl != null) parts.push(`${L.stl} stl`);
+        if (L.blk != null) parts.push(`${L.blk} blk`);
+        if (L.tov != null) parts.push(`${L.tov} TO`);
+        const has = (s)=> typeof s === 'string' && s.includes('/') && !/null/.test(s);
+        const splits = [];
+        if (has(L.fg))  splits.push(`FG ${L.fg}`);
+        if (has(L.fg3)) splits.push(`3PT ${L.fg3}`);
+        if (has(L.ft))  splits.push(`FT ${L.ft}`);
+        if (splits.length) parts.push(splits.join(' '));
+        return parts.join(' · ');
+      }
+
+      function renderRecent(data){
+        recentEl.innerHTML = '';
+        if (!data.games || data.games.length === 0){
+          recentEl.innerHTML = '<div class="empty-state">No recent games found.</div>';
+          return;
+        }
+        data.games.forEach(g => {
+          const d = new Date(g.date);
+          const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          const vsat = g.homeAway === 'home' ? 'vs' : 'at';
+          const opp = g.opponent?.abbreviation || g.opponent?.name || 'OPP';
+          const res = g.score?.result || '';
+          const score = typeof g.score?.team === 'number' ? `${g.score.team}-${g.score.opp}` : '';
+          const div = document.createElement('div');
+          div.className = 'game-card';
+          const logo = g.opponent?.logo || '';
+          div.innerHTML = `
+            <div class=\"game-date\">${dateStr}</div>
+            <div class=\"game-teams\">${logo ? `<img src="${logo}" alt="${opp} logo" />` : ''}${vsat} ${opp} ${res && score ? `· ${res} ${score}` : ''}</div>
+            <div class=\"game-stats\">${fmtLine(g.line)}</div>
+          `;
+          recentEl.appendChild(div);
+        });
+      }
+
+      function renderAvg(target, a){
+        if (!a){ target.innerHTML = '<div class="empty-state">N/A</div>'; return; }
+        target.innerHTML = `
+          <div class="stat-row"><span class="stat-label">GP</span><span class="stat-value">${a.gp ?? '—'}</span></div>
+          <div class="stat-row"><span class="stat-label">PPG</span><span class="stat-value">${a.ppg ?? '—'}</span></div>
+          <div class="stat-row"><span class="stat-label">RPG</span><span class="stat-value">${a.rpg ?? '—'}</span></div>
+          <div class="stat-row"><span class="stat-label">APG</span><span class="stat-value">${a.apg ?? '—'}</span></div>
+          <div class="stat-row"><span class="stat-label">SPG</span><span class="stat-value">${a.spg ?? '—'}</span></div>
+          <div class="stat-row"><span class="stat-label">BPG</span><span class="stat-value">${a.bpg ?? '—'}</span></div>
+          <div class="stat-row"><span class="stat-label">TPG</span><span class="stat-value">${a.tpg ?? '—'}</span></div>
+          <div class="stat-row"><span class="stat-label">MPG</span><span class="stat-value">${a.mpg ?? '—'}</span></div>
+        `;
+      }
+
+      fetch(`/api/v1/players/${slug}/recent`).then(r=>r.json()).then(d=>renderRecent(d)).catch(()=>{
+        recentEl.innerHTML = '<div class="empty-state">Failed to load recent games.</div>';
+      });
+      fetch(`/api/v1/players/${slug}/averages`).then(r=>r.json()).then(d=>{
+        renderAvg(avgCurEl, d.current);
+        renderAvg(avgPrevEl, d.previous);
+      }).catch(()=>{
+        renderAvg(avgCurEl, null); renderAvg(avgPrevEl, null);
+      });
+    })();
+  </script>
+</body>
+</html>
         const container = document.getElementById('live-container');
         const stateEl = document.getElementById('live-state');
         const clockEl = document.getElementById('live-clock');

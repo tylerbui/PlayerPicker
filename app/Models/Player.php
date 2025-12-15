@@ -12,7 +12,7 @@ class Player extends Model
     }
 
     protected $fillable = [
-        'team_id', 'api_id', 'first_name', 'last_name', 'slug',
+'team_id', 'api_id', 'espn_athlete_id', 'first_name', 'last_name', 'slug',
         'birth_date', 'birth_place', 'birth_country', 'nationality',
         'height', 'weight', 'position', 'number', 'photo', 'biography',
         'current_season_stats', 'recent_games_stats', 'previous_season_stats',

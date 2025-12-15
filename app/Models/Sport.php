@@ -21,7 +21,6 @@ class Sport extends Model
     protected $appends = [
         'image_url',
         'icon_url',
-        'teams_count',
     ];
 
     protected $casts = [
@@ -29,6 +28,15 @@ class Sport extends Model
     ];
 
     // Relationships
+    public function leagues()
+    {
+        return $this->hasMany(League::class);
+    }
+
+    public function teams()
+    {
+        return $this->hasMany(Team::class);
+    }
 
     public function getImageUrlAttribute(): ?string
     {

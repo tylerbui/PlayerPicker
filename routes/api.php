@@ -23,4 +23,8 @@ Route::apiResource('players', PlayerController::class)->only(['index', 'show']);
 
     // Live player line (near-live from ESPN)
     Route::get('players/{player:slug}/live', [PlayerController::class, 'live'])->name('players.live');
+    // Recent games (last 5) with per-game lines
+    Route::get('players/{player:slug}/recent', [PlayerController::class, 'recent'])->name('players.recent');
+    // Averages (from stored season blobs)
+    Route::get('players/{player:slug}/averages', [PlayerController::class, 'averages'])->name('players.averages');
 });

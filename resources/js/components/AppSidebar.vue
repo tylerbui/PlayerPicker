@@ -10,18 +10,52 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarGroup,
+    SidebarGroupLabel,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, home } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpen, Folder, LayoutGrid, Users, Trophy, GraduationCap, UserCircle } from 'lucide-vue-next';
+import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
+
+const page = usePage();
+const selectedLevel = computed(() => page.props.selectedLevel as string | undefined);
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Teams',
+        href: '/teams',
+        icon: Users,
+    },
+    {
+        title: 'Players',
+        href: '/players',
+        icon: UserCircle,
+    },
+];
+
+const levelNavItems: NavItem[] = [
+    {
+        title: 'Professional',
+        href: dashboard({ query: { level: 'professional' } }),
+        icon: Trophy,
+    },
+    {
+        title: 'College',
+        href: dashboard({ query: { level: 'college' } }),
+        icon: GraduationCap,
+    },
+    {
+        title: 'Amateur',
+        href: dashboard({ query: { level: 'amateur' } }),
+        icon: Users,
     },
 ];
 
@@ -45,7 +79,7 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="home()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -54,6 +88,26 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
+            <!-- Level Selection -->
+            <SidebarGroup class="px-2 py-0">
+                <SidebarGroupLabel>Level</SidebarGroupLabel>
+                <SidebarMenu>
+                    <SidebarMenuItem v-for="item in levelNavItems" :key="item.title">
+                        <SidebarMenuButton
+                            as-child
+                            :is-active="selectedLevel === item.title.toLowerCase()"
+                            :tooltip="item.title"
+                        >
+                            <Link :href="item.href">
+                                <component :is="item.icon" />
+                                <span>{{ item.title }}</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroup>
+
+            <!-- Main Navigation -->
             <NavMain :items="mainNavItems" />
         </SidebarContent>
 

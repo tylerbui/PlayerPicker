@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Team;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class TeamController extends Controller
 {
@@ -29,7 +30,9 @@ class TeamController extends Controller
             ->paginate(24)
             ->withQueryString();
 
-        return view('teams.index', compact('teams'));
+        return Inertia::render('teams/Index', [
+            'teams' => $teams,
+        ]);
     }
 
     public function show(Team $team)
@@ -39,6 +42,8 @@ class TeamController extends Controller
             'players' => fn($q) => $q->orderBy('number')->orderBy('last_name'),
         ]);
 
-        return view('teams.show', compact('team'));
+        return Inertia::render('teams/Show', [
+            'team' => $team,
+        ]);
     }
 }

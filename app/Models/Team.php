@@ -15,7 +15,7 @@ class Team extends Model
         'id',
         'sport_id',
         'league_id',
-        'api_id',
+'api_id', 'espn_team_id',
         'name',
         'slug',
         'code',
@@ -48,7 +48,6 @@ class Team extends Model
 
     protected $appends = [
         'logo_url',
-        'team_color',
     ];
 
     public function getLogoUrlAttribute(): ?string

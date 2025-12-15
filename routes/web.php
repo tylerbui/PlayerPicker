@@ -6,16 +6,36 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
+    $sports = \App\Models\Sport::where('is_active', true)
+        ->orderBy('name')
+        ->get(['id', 'name', 'slug', 'icon', 'description']);
+    
+    return Inertia::render('SportSelect', [
+        'sports' => $sports
     ]);
 })->name('home');
 
 Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
+    return Inertia::render('Dashboard', [
+        'selectedLevel' => request()->query('level', 'all'),
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::resource('sports', SportsController::class);
+// Show sport detail with leagues
+Route::get('/sports/{sport:slug}', function (\App\Models\Sport $sport) {
+    $leagues = $sport->leagues()
+        ->where('is_active', true)
+        ->with('sport')
+        ->orderBy('name')
+        ->get();
+    
+    return Inertia::render('SportDetail', [
+        'sport' => $sport,
+        'leagues' => $leagues
+    ]);
+})->name('sports.show');
+
+Route::resource('sports', SportsController::class)->except(['show']);
 
 // Web team pages (index + show)
 use App\Http\Controllers\TeamController as WebTeamController;

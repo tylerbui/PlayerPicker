@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Sports;
+use App\Models\Sport;
 use Illuminate\Http\Request;
 
 class SportsController extends Controller
@@ -12,7 +12,7 @@ class SportsController extends Controller
      */
     public function index()
     {
-        $sports = Sports::orderBy('name')->paginate(15);
+        $sports = Sport::orderBy('name')->paginate(15);
         return response()->json($sports);
     }
 
@@ -25,7 +25,7 @@ class SportsController extends Controller
             'name' => 'required',
             'slug' => 'required',
         ]);
-        $sports = Sports::create($request->all());
+        $sports = Sport::create($request->all());
         return response()->json($sports);
         if (!$sports) {
             return response()->json(['message' => 'Sport not created'], 500);
@@ -35,9 +35,9 @@ class SportsController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Sports $sports)
+    public function show(Sport $sport)
     {
-        $sports = Sports::find($sports->id);
+        $sports = Sport::find($sport->id);
         return response()->json($sports);
         if (!$sports) {
             return response()->json(['message' => 'Sport not found'], 404);
@@ -47,21 +47,21 @@ class SportsController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Sports $sports)
+    public function edit(Sport $sport)
     {
-        $sports = Sports::find($sports->id);
+        $sports = Sport::find($sport->id);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Sports $sports)
+    public function update(Request $request, Sport $sport)
     {
         $validated = $request->validate([
             'name' => 'required',
             'slug' => 'required',
         ]);
-        $sports = Sports::find($sports->id);
+        $sports = Sport::find($sport->id);
         $sports->update($request->all());
         return response()->json($sports);
         if (!$sports) {
@@ -72,9 +72,9 @@ class SportsController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Sports $sports)
+    public function destroy(Sport $sport)
     {
-        $sports = Sports::find($sports->id);
+        $sports = Sport::find($sport->id);
         $sports->delete();
         return response()->json(['message' => 'Sport deleted'], 200);
         if (!$sports) {

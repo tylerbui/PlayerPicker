@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Player;
 use App\Models\Team;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class PlayerController extends Controller
 {
@@ -26,7 +27,10 @@ class PlayerController extends Controller
 
         $teams = Team::orderBy('name')->get(['id','name']);
 
-        return view('players.index', compact('players','teams'));
+        return Inertia::render('players/Index', [
+            'players' => $players,
+            'teams' => $teams,
+        ]);
     }
 
     public function show(Player $player)
@@ -36,6 +40,9 @@ class PlayerController extends Controller
         // Check if stats are stale (older than 6 hours) and need refresh
         $needsSync = !$player->stats_synced_at || $player->stats_synced_at->lt(now()->subHours(6));
         
-        return view('players.show', compact('player', 'needsSync'));
+        return Inertia::render('players/Show', [
+            'player' => $player,
+            'needsSync' => $needsSync,
+        ]);
     }
 }

@@ -17,12 +17,22 @@ class PlayerController extends Controller
             return response()->json(['ok' => false, 'message' => 'Team abbreviation missing for player team'], 422);
         }
 
-        // Only look for live games first; if none, allow pregame for today so page can show upcoming
+        // Try by team abbr, then fall back to scanning by player name across today's games
         $eventId = $espn->findTodayEventForTeamAbbr($teamAbbr, true)
             ?? $espn->findTodayEventForTeamAbbr($teamAbbr, false);
 
+        $fullName = trim($player->first_name . ' ' . $player->last_name);
+        $foundByName = null;
         if (!$eventId) {
-            return response()->json(['ok' => false, 'live' => false, 'message' => 'No game found for team today'], 404);
+            $foundByName = $espn->findTodayEventForPlayerName($fullName, false);
+            if ($foundByName) {
+                $eventId = $foundByName['eventId'];
+                $teamAbbr = $foundByName['teamAbbr'];
+            }
+        }
+
+        if (!$eventId) {
+            return response()->json(['ok' => false, 'live' => false, 'message' => 'No game found for player today'], 404);
         }
 
         $summary = $espn->getGameSummary($eventId);
@@ -32,6 +42,11 @@ class PlayerController extends Controller
 
         $fullName = trim($player->first_name . ' ' . $player->last_name);
         $line = $espn->extractPlayerLiveLine($summary, $fullName, $teamAbbr);
+        if (!$line && !$foundByName) {
+            // One more attempt without relying on team
+            $any = $espn->extractPlayerFromSummaryAnyTeam($summary, $fullName);
+            if ($any) { $line = $any['line']; $teamAbbr = $any['teamAbbr'] ?? $teamAbbr; }
+        }
 
         $state = data_get($summary, 'header.competitions.0.status.type.state');
         $clock = data_get($summary, 'header.competitions.0.status.type.detail');
@@ -51,6 +66,61 @@ class PlayerController extends Controller
             'source' => 'espn',
         ]);
 }
+
+    public function recent(Player $player, \App\Services\EspnService $espn)
+    {
+        $player->load('team');
+        $teamAbbr = $player->team?->code;
+        if (!$teamAbbr) {
+            return response()->json(['ok' => false, 'message' => 'Team abbreviation missing for player team'], 422);
+        }
+        // Prefer robust name-based search to avoid stale team mappings
+        $fullName = trim($player->first_name . ' ' . $player->last_name);
+        $games = $espn->findRecentGamesByPlayerName($fullName, 5, 30);
+        return response()->json(['ok' => true, 'games' => $games]);
+    }
+
+    public function averages(Player $player)
+    {
+        // Derive simple per-game averages from stored season blobs if present
+        $curr = $player->current_season_stats ?? [];
+        $prev = $player->previous_season_stats ?? [];
+
+        $avgFrom = function ($blob) {
+            if (!is_array($blob) || empty($blob)) return null;
+            // Try common shapes: either list of groups with aggregated stats or a flat map
+            $stats = $blob;
+            if (isset($blob['statistics'])) { $stats = $blob['statistics']; }
+            if (is_array($stats) && isset($stats[0])) { $stats = $stats[0]; }
+
+            // Heuristics for NBA-ish keys
+            $gp = data_get($stats, 'games.played') ?? data_get($stats, 'games.appearences') ?? data_get($stats, 'games');
+            $pts = data_get($stats, 'points.average') ?? data_get($stats, 'pointsPerGame') ?? data_get($stats, 'points');
+            $reb = data_get($stats, 'rebounds.average') ?? data_get($stats, 'reboundsPerGame') ?? data_get($stats, 'rebounds');
+            $ast = data_get($stats, 'assists.average') ?? data_get($stats, 'assistsPerGame') ?? data_get($stats, 'assists');
+            $stl = data_get($stats, 'steals.average') ?? data_get($stats, 'stealsPerGame') ?? data_get($stats, 'steals');
+            $blk = data_get($stats, 'blocks.average') ?? data_get($stats, 'blocksPerGame') ?? data_get($stats, 'blocks');
+            $tov = data_get($stats, 'turnovers.average') ?? data_get($stats, 'turnoversPerGame') ?? data_get($stats, 'turnovers');
+            $mpg = data_get($stats, 'minutes.average') ?? data_get($stats, 'minutesPerGame') ?? data_get($stats, 'minutes');
+
+            return [
+                'gp' => $gp,
+                'ppg' => $pts,
+                'rpg' => $reb,
+                'apg' => $ast,
+                'spg' => $stl,
+                'bpg' => $blk,
+                'tpg' => $tov,
+                'mpg' => $mpg,
+            ];
+        };
+
+        return response()->json([
+            'ok' => true,
+            'current' => $avgFrom($curr),
+            'previous' => $avgFrom($prev),
+        ]);
+    }
 
     // GET /api/v1/players
     public function index(Request $request)
