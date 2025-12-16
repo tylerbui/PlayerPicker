@@ -42,8 +42,13 @@ class TeamController extends Controller
             'players' => fn($q) => $q->orderBy('number')->orderBy('last_name'),
         ]);
 
+        $isFavorited = auth()->check() 
+            ? auth()->user()->favoriteTeams()->where('team_id', $team->id)->exists()
+            : false;
+
         return Inertia::render('teams/Show', [
             'team' => $team,
+            'isFavorited' => $isFavorited,
         ]);
     }
 }

@@ -40,9 +40,14 @@ class PlayerController extends Controller
         // Check if stats are stale (older than 6 hours) and need refresh
         $needsSync = !$player->stats_synced_at || $player->stats_synced_at->lt(now()->subHours(6));
         
+        $isFavorited = auth()->check() 
+            ? auth()->user()->favoritePlayers()->where('player_id', $player->id)->exists()
+            : false;
+        
         return Inertia::render('players/Show', [
             'player' => $player,
             'needsSync' => $needsSync,
+            'isFavorited' => $isFavorited,
         ]);
     }
 }
