@@ -56,4 +56,8 @@ return [
         'base_url' => env('SPORTSDB_BASE_URL', 'https://www.thesportsdb.com/api/v1/json'),
     ],
 
+    'ncaa_api' => [
+        'base_url' => env('NCAA_API_BASE_URL', 'https://ncaa-api.henrygd.me'),
+    ],
+
 ];
