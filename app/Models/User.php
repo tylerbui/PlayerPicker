@@ -51,4 +51,18 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
+
+    public function favoriteTeams(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'user_favorite_teams')
+            ->withTimestamps()
+            ->orderBy('user_favorite_teams.created_at', 'desc');
+    }
+
+    public function favoritePlayers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Player::class, 'user_favorite_players')
+            ->withTimestamps()
+            ->orderBy('user_favorite_players.created_at', 'desc');
+    }
 }
