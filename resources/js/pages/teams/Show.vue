@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
+import { Heart } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface Player {
     id: number;
@@ -28,9 +31,17 @@ interface Team {
 
 interface Props {
     team: Team;
+    isFavorited?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    isFavorited: false,
+});
+
+const page = usePage();
+const isAuthenticated = !!page.props.auth?.user;
+const localIsFavorited = ref(props.isFavorited);
+const isProcessing = ref(false);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -45,6 +56,28 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const goToPlayer = (slug: string) => {
     router.visit(`/players/${slug}`);
+};
+
+const toggleFavorite = () => {
+    if (!isAuthenticated) {
+        router.visit('/login');
+        return;
+    }
+    
+    isProcessing.value = true;
+    router.post(
+        `/favorites/teams/${props.team.slug}`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                localIsFavorited.value = !localIsFavorited.value;
+            },
+            onFinish: () => {
+                isProcessing.value = false;
+            },
+        }
+    );
 };
 </script>
 
@@ -66,7 +99,7 @@ const goToPlayer = (slug: string) => {
                         {{ team.code || team.name.substring(0, 2).toUpperCase() }}
                     </span>
                 </div>
-                <div>
+                <div class="flex-1">
                     <h1 class="text-4xl font-bold text-slate-900 dark:text-slate-50">
                         {{ team.name }}
                     </h1>
@@ -77,6 +110,15 @@ const goToPlayer = (slug: string) => {
                         {{ team.players.length }} players
                     </p>
                 </div>
+                <Button
+                    @click="toggleFavorite"
+                    :disabled="isProcessing"
+                    :variant="localIsFavorited ? 'default' : 'outline'"
+                    class="flex items-center gap-2"
+                >
+                    <Heart :class="['h-4 w-4', localIsFavorited ? 'fill-current' : '']" />
+                    {{ localIsFavorited ? 'Favorited' : 'Add to Favorites' }}
+                </Button>
             </div>
 
             <!-- Players Grid -->

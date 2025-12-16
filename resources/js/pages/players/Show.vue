@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { Heart } from 'lucide-vue-next';
 
 interface Team {
     id: number;
@@ -38,9 +39,18 @@ interface Player {
 interface Props {
     player: Player;
     needsSync?: boolean;
+    isFavorited?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    needsSync: false,
+    isFavorited: false,
+});
+
+const page = usePage();
+const isAuthenticated = !!page.props.auth?.user;
+const localIsFavorited = ref(props.isFavorited);
+const isProcessing = ref(false);
 
 const fullName = computed(() => props.player.full_name || `${props.player.first_name} ${props.player.last_name}`);
 const teamPrimary = computed(() => props.player.team.primary_color || '#2563eb');
@@ -52,6 +62,28 @@ const goBack = () => {
 
 const goToTeam = () => {
     router.visit(`/teams/${props.player.team.slug}`);
+};
+
+const toggleFavorite = () => {
+    if (!isAuthenticated) {
+        router.visit('/login');
+        return;
+    }
+    
+    isProcessing.value = true;
+    router.post(
+        `/favorites/players/${props.player.slug}`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                localIsFavorited.value = !localIsFavorited.value;
+            },
+            onFinish: () => {
+                isProcessing.value = false;
+            },
+        }
+    );
 };
 
 // Live game state
@@ -189,22 +221,40 @@ onUnmounted(() => {
                 />
                 
                 <div>
-                    <h1 
-                        class="mb-2 text-7xl font-bold"
-                        :style="{ color: `color-mix(in srgb, ${teamPrimary} 90%, black)` }"
-                    >
-                        {{ fullName }}
-                    </h1>
-                    
-                    <div class="mb-6 text-2xl text-gray-500">
-                        <button 
-                            @click="goToTeam"
-                            class="hover:underline"
-                            :style="{ color: teamPrimary }"
+                    <div class="mb-6 flex items-start justify-between">
+                        <div>
+                            <h1 
+                                class="mb-2 text-7xl font-bold"
+                                :style="{ color: `color-mix(in srgb, ${teamPrimary} 90%, black)` }"
+                            >
+                                {{ fullName }}
+                            </h1>
+                            
+                            <div class="text-2xl text-gray-500">
+                                <button 
+                                    @click="goToTeam"
+                                    class="hover:underline"
+                                    :style="{ color: teamPrimary }"
+                                >
+                                    {{ player.team.name }}
+                                </button>
+                                <span v-if="player.number"> · #{{ player.number }}</span>
+                            </div>
+                        </div>
+                        
+                        <button
+                            @click="toggleFavorite"
+                            :disabled="isProcessing"
+                            class="flex items-center gap-2 rounded-lg px-6 py-3 text-lg font-medium transition-all"
+                            :class="[
+                                localIsFavorited 
+                                    ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ]"
                         >
-                            {{ player.team.name }}
+                            <Heart :class="['h-5 w-5', localIsFavorited ? 'fill-current text-red-500' : '']" />
+                            {{ localIsFavorited ? 'Favorited' : 'Add to Favorites' }}
                         </button>
-                        <span v-if="player.number"> · #{{ player.number }}</span>
                     </div>
                     
                     <div class="mt-8 grid grid-cols-5 gap-4">
